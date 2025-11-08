@@ -8,12 +8,17 @@ public class WasdPlayer : MonoBehaviour
     public float moveSpeed = 6f;
     public float sprintMultiplier = 1.6f;
     public float gravity = -18f;
-    public bool topDownNorthUp = true;
+    public bool useCameraRelativeMovement = true;
 
     private CharacterController _controller;
     private Vector3 _velocity;
+    private Camera _mainCamera;
 
-    void Awake() => _controller = GetComponent<CharacterController>();
+    void Awake()
+    {
+        _controller = GetComponent<CharacterController>();
+        _mainCamera = Camera.main;
+    }
 
     void Update()
     {
@@ -21,9 +26,26 @@ public class WasdPlayer : MonoBehaviour
         float v = Input.GetAxisRaw("Vertical");
         Vector3 input = new Vector3(h, 0, v).normalized;
 
-        Vector3 moveDir = topDownNorthUp
-            ? input
-            : transform.TransformDirection(input);
+        // Calculate movement direction based on camera or world space
+        Vector3 moveDir;
+        if (useCameraRelativeMovement && _mainCamera != null)
+        {
+            // Get camera forward and right, but keep them flat (no Y component)
+            Vector3 cameraForward = _mainCamera.transform.forward;
+            Vector3 cameraRight = _mainCamera.transform.right;
+            cameraForward.y = 0;
+            cameraRight.y = 0;
+            cameraForward.Normalize();
+            cameraRight.Normalize();
+
+            // Calculate move direction relative to camera
+            moveDir = (cameraForward * input.z + cameraRight * input.x);
+        }
+        else
+        {
+            // World-space movement (north/south/east/west)
+            moveDir = input;
+        }
 
         float speed = Input.GetKey(KeyCode.LeftShift) ? moveSpeed * sprintMultiplier : moveSpeed;
 
@@ -33,7 +55,8 @@ public class WasdPlayer : MonoBehaviour
         Vector3 step = moveDir * speed + new Vector3(0f, _velocity.y, 0f);
         _controller.Move(step * Time.deltaTime);
 
-        if (input.sqrMagnitude > 0.01f)
+        // Rotate player to face movement direction
+        if (moveDir.sqrMagnitude > 0.01f)
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDir, Vector3.up);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
