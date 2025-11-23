@@ -7,6 +7,7 @@ public class CoinPickup : MonoBehaviour
         if (other.CompareTag("Player"))
         {
             GameManager.Instance.AddCoin(1);
+            CoinManager.instance.AddCoin();
             Destroy(gameObject);
         }
     }
