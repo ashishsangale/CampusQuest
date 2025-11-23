@@ -32,6 +32,10 @@ public class SimonSays : MonoBehaviour
     private Image rImg, bImg, gImg, yImg;
     private Color rBase, bBase, gBase, yBase;
 
+    [SerializeField] private CanvasGroup panelGroup;   // drag SimonPanel’s CanvasGroup here
+    [SerializeField] private ToastPopup toast;  
+
+
     void Awake()
     {
         rImg = padRed.GetComponent<Image>();
@@ -81,12 +85,29 @@ public class SimonSays : MonoBehaviour
             yield return new WaitForSeconds(betweenRounds);
         }
 
-        // success 🎉
+        // Won the game!
         if (statusText) statusText.text = "You did it!";
-        yield return new WaitForSeconds(0.6f);
+        yield return new WaitForSeconds(0.4f);
+
+        // 1) Fade the Simon panel out (so it "disappears")
+        if (panelGroup)
+        {
+            panelGroup.interactable = false;
+            panelGroup.blocksRaycasts = false;
+            yield return Fade(panelGroup, 1f, 0f, 0.25f);
+        }
+
+        // 2) Show toast AFTER panel is gone
+        if (toast) toast.Show("Collect unlocked!", 1.0f);
+
+        // 3) Unlock and close
         if (collectZoneToEnable) collectZoneToEnable.SetActive(true);
         if (playerMoverToReenable) playerMoverToReenable.enabled = true;
-        gameObject.SetActive(false); // close panel
+
+        // We can now disable the panel immediately—the toast is a sibling so it stays visible.
+        gameObject.SetActive(false);
+
+
     }
 
     IEnumerator ShowSequence()
@@ -102,6 +123,20 @@ public class SimonSays : MonoBehaviour
 
         startButton.interactable = true;
     }
+
+    IEnumerator Fade(CanvasGroup g, float from, float to, float t)
+    {
+        float e = 0f;
+        g.alpha = from;
+        while (e < t)
+        {
+            e += Time.unscaledDeltaTime;
+            g.alpha = Mathf.Lerp(from, to, e / t);
+            yield return null;
+        }
+        g.alpha = to;
+    }
+
 
     IEnumerator Flash(int idx)
     {
@@ -142,6 +177,19 @@ public class SimonSays : MonoBehaviour
         yield return new WaitForSeconds(0.15f);
         img.color = baseCol;
     }
+
+    // Disable player movement whenever the Simon panel is shown
+void OnEnable()
+{
+    if (playerMoverToReenable) playerMoverToReenable.enabled = false;
+}
+
+// Make sure movement is restored if the panel is hidden (win, close, etc.)
+void OnDisable()
+{
+    if (playerMoverToReenable) playerMoverToReenable.enabled = true;
+}
+
 
     Image GetImage(int idx) => idx switch { 0 => rImg, 1 => bImg, 2 => gImg, _ => yImg };
     Color GetBase(int idx)  => idx switch { 0 => rBase, 1 => bBase, 2 => gBase, _ => yBase };
