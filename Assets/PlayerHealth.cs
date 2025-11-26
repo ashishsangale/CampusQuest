@@ -17,6 +17,12 @@ public class PlayerHealth : MonoBehaviour
         SyncToPlayerStats();
     }
 
+    private void Update()
+    {
+        // Continuously sync to ensure health bar stays updated
+        SyncToPlayerStats();
+    }
+
     public void TakeDamage(int amount)
     {
         currentHealth -= amount;

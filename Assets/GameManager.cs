@@ -97,7 +97,7 @@ public class GameManager : MonoBehaviour
 
         RectTransform rt = coinsLabel.GetComponent<RectTransform>();
 
-        // Set position to (926, 387, 0)
-        rt.anchoredPosition3D = new Vector3(926f, 387f, 0f);
+        // Set position to (-701, 224, 0)
+        rt.anchoredPosition3D = new Vector3(-701f, 224f, 0f);
     }
 }

@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class Treasure : MonoBehaviour
 {
-    [SerializeField] private int pointValue = 10;
+    [SerializeField] private int pointValue = 20;
     [SerializeField] private float rotateSpeed = 60f; // visual flair
 
     private void Update()

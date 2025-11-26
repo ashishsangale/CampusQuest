@@ -8,7 +8,8 @@ public class ToastPopup : MonoBehaviour
     [SerializeField] private CanvasGroup group;
     [SerializeField] private float fadeTime = 0.25f;
 
-    void Reset()  // auto-wire if added on the Toast object
+    // Optional: For convenience, auto-wire if added directly
+    void Reset()
     {
         label = GetComponent<TextMeshProUGUI>();
         group = GetComponent<CanvasGroup>();
@@ -17,27 +18,33 @@ public class ToastPopup : MonoBehaviour
     public void Show(string message, float hold = 1.0f)
     {
         StopAllCoroutines();
-        StartCoroutine(ShowRoutine(message, hold));
-    }
-
-    IEnumerator ShowRoutine(string message, float hold)
-    {
         if (label) label.text = message;
-        yield return Fade(0f, 1f, fadeTime);
-        yield return new WaitForSeconds(hold);
-        yield return Fade(1f, 0f, fadeTime);
+        if (group)
+        {
+            group.alpha = 1f; // Instantly appear
+            group.interactable = true;
+            group.blocksRaycasts = true;
+        }
+        StartCoroutine(HideRoutine(hold));
     }
 
-    IEnumerator Fade(float a, float b, float t)
+    private IEnumerator HideRoutine(float hold)
     {
-        if (!group) yield break;
-        float e = 0f;
-        while (e < t)
+        yield return new WaitForSeconds(hold);
+        // Fade out
+        float elapsed = 0f;
+        float startAlpha = group ? group.alpha : 1f;
+        while (group && elapsed < fadeTime)
         {
-            e += Time.unscaledDeltaTime;            // UI not affected by timescale
-            group.alpha = Mathf.Lerp(a, b, e / t);
+            elapsed += Time.unscaledDeltaTime;
+            group.alpha = Mathf.Lerp(startAlpha, 0f, elapsed / fadeTime);
             yield return null;
         }
-        group.alpha = b;
+        if (group)
+        {
+            group.alpha = 0f;
+            group.interactable = false;
+            group.blocksRaycasts = false;
+        }
     }
 }
