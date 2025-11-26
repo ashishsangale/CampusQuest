@@ -406,7 +406,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 19de723fc2d75544b970974dcafc2d56, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::InteractZone
-  puzzlePanel: {fileID: 89012053}
+  puzzlePanel: {fileID: 70797004}
   playerMover: {fileID: 1022030659}
 --- !u!54 &34742074
 Rigidbody:
@@ -660,7 +660,7 @@ MonoBehaviour:
   padYellow: {fileID: 6960480}
   startButton: {fileID: 274159245}
   titleText: {fileID: 0}
-  statusText: {fileID: 921329411}
+  statusText: {fileID: 0}
   roundsToWin: 3
   flashTime: 0.5
   betweenFlashes: 0.25
@@ -2486,7 +2486,8 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "We\u2019ll show \u201CWatch\u2026\u201D / \u201CYour turn\u201D / \u201CWrong!\u201D\n"
+  m_text: "empty (we\u2019ll show \u201CWatch\u2026\u201D / \u201CYour turn\u201D
+    / \u201CWrong!\u201D)\n"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
   m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
