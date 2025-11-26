@@ -14,7 +14,7 @@ public class JigsawPuzzle : MonoBehaviour
     [SerializeField] private Button shuffleButton;
 #if TMP_PRESENT || TEXTMESHPRO_PRESENT
     [SerializeField] private TMP_Text titleText;
-[SerializeField] private TMP_Text statusText;
+    [SerializeField] private TMP_Text statusText;
 #else
     [SerializeField] private Text titleText;
     [SerializeField] private Text statusText;
@@ -34,6 +34,12 @@ public class JigsawPuzzle : MonoBehaviour
 
     [Header("Events")]
     public UnityEvent OnSolved;
+
+    [Header("Toast (shown AFTER the panel fades)")]
+    [SerializeField] private ToastPopup toast;                 // drag your Toast (TextMeshProUGUI + ToastPopup) here
+    [SerializeField] private string toastMessage = "Your next treasure is at Academic Center!";
+    [SerializeField] private float toastDuration = 2.5f;
+    [SerializeField] private float postWinPause = 0.40f;       // tiny beat before fading out
 
     private TileButton firstSelected;
     private readonly int[] logicalOrder = new int[9];  // visual idx -> logical idx
@@ -102,10 +108,39 @@ public class JigsawPuzzle : MonoBehaviour
         if (IsSolved())
         {
             SetStatus(winMessage);
+
+            // Fire your existing hooks first (e.g., disable chest) and award points
             OnSolved?.Invoke();
             TryAwardPoints(awardPoints);
-            if (panelGroup) StartCoroutine(FadeOut());
+
+            // Then run the same “fade then toast” rhythm you use in Simon
+            StartCoroutine(WinSequence());
         }
+    }
+
+    private System.Collections.IEnumerator WinSequence()
+    {
+        // small beat to let the win label be read
+        yield return new WaitForSeconds(postWinPause);
+
+        // fade panel out
+        if (panelGroup)
+        {
+            float t = 0f;
+            float start = panelGroup.alpha;
+            while (t < fadeOutTime)
+            {
+                t += Time.deltaTime;
+                panelGroup.alpha = Mathf.Lerp(start, 0f, t / fadeOutTime);
+                yield return null;
+            }
+            panelGroup.alpha = 0f;
+            panelGroup.interactable = false;
+            panelGroup.blocksRaycasts = false;
+        }
+
+        // now show the clue toast
+        if (toast) toast.Show(toastMessage, toastDuration);
     }
 
     private void Swap(TileButton a, TileButton b)
@@ -162,25 +197,9 @@ public class JigsawPuzzle : MonoBehaviour
         }
     }
 
-    private System.Collections.IEnumerator FadeOut()
-    {
-        float t = 0f;
-        float start = panelGroup.alpha;
-        while (t < fadeOutTime)
-        {
-            t += Time.deltaTime;
-            panelGroup.alpha = Mathf.Lerp(start, 0f, t / fadeOutTime);
-            yield return null;
-        }
-        panelGroup.alpha = 0f;
-        panelGroup.interactable = false;
-        panelGroup.blocksRaycasts = false;
-    }
-
     /// Try to award points on ScoreManager.Instance using any common method name.
     private void TryAwardPoints(int points)
     {
-        // If there is no ScoreManager type in the project, the next line still compiles fine.
         var smInstanceProp = typeof(ScoreManager).GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
         if (smInstanceProp == null) return;
 
@@ -188,16 +207,11 @@ public class JigsawPuzzle : MonoBehaviour
         if (sm == null) return;
 
         var t = sm.GetType();
-        // Try Add(int), AddPoints(int), AddScore(int) in that order
         var m =
             t.GetMethod("Add", new[] { typeof(int) }) ??
             t.GetMethod("AddPoints", new[] { typeof(int) }) ??
             t.GetMethod("AddScore", new[] { typeof(int) });
 
-        if (m != null)
-        {
-            m.Invoke(sm, new object[] { points });
-        }
-        // else: silently skip – no scoring API present.
+        if (m != null) m.Invoke(sm, new object[] { points });
     }
 }

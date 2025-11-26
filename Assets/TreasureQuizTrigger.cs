@@ -2,59 +2,69 @@ using UnityEngine;
 
 public class TreasureQuizTrigger : MonoBehaviour
 {
+    [Header("Chest + Reward")]
+    public GameObject chestRoot;        // Assign the parent chest object
+    public int rewardPoints = 10;        // Points to add on quiz completion
+
     [Header("Detection")]
     public string playerTag = "Player";
 
     [Header("References")]
-    public QuizUIController quizUI;
+    public QuizUIController quizUI;      // Assign your QuizCanvas object
 
-    [Header("Completion Message")]
+    [Header("Completion Message (optional)")]
     public GameObject messagePrefab;
 
+    private bool used = false;
 
-    private bool used = false;       
-    private bool quizOpen = false;  
-
-    void Reset()
+    private void Reset()
     {
-        var col = GetComponent<Collider>();
-        if (col) col.isTrigger = true; 
+        Collider c = GetComponent<Collider>();
+        if (c != null) c.isTrigger = true;
     }
 
-    void OnTriggerEnter(Collider other)
+    private void OnTriggerEnter(Collider other)
     {
-        if (used || quizOpen) return;
+        if (used) return;
         if (!other.CompareTag(playerTag)) return;
+
+        used = true;   // Mark as used so it doesn�t fire twice
 
         if (quizUI != null)
         {
-            quizOpen = true;
             quizUI.onQuizCompleted.AddListener(OnQuizCompleted);
             quizUI.ShowQuiz();
-
-            var col = GetComponent<Collider>();
-            if (col) col.enabled = false;
         }
         else
         {
-            Debug.LogWarning("TreasureQuizTrigger: quizUI not assigned.");
+            Debug.LogWarning("QuizUI not assigned!");
         }
+
+        // Disable further collisions
+        GetComponent<Collider>().enabled = false;
     }
 
     private void OnQuizCompleted()
     {
+        // Unsubscribe
         if (quizUI != null)
             quizUI.onQuizCompleted.RemoveListener(OnQuizCompleted);
 
-        used = true;
-        quizOpen = false;
+        // Add score
+        if (ScoreManager.Instance != null)
+            ScoreManager.Instance.AddPoints(rewardPoints);
 
+        // Show floating message (optional)
         if (messagePrefab != null)
         {
             GameObject msg = Instantiate(messagePrefab, transform.position, Quaternion.identity);
-            Destroy(msg, 6f); // disappear after 6 sec
+            Destroy(msg, 6f);
         }
 
-        Destroy(gameObject);
+        // Destroy chest
+        if (chestRoot != null)
+            Destroy(chestRoot);
+        else
+            Destroy(gameObject);
     }
 }

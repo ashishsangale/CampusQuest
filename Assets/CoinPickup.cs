@@ -6,8 +6,18 @@ public class CoinPickup : MonoBehaviour
     {
         if (other.CompareTag("Player"))
         {
-            GameManager.Instance.AddCoin(1);
-            CoinManager.instance.AddCoin();
+            // Add coin to GameManager if it exists
+            if (GameManager.Instance != null)
+            {
+                GameManager.Instance.AddCoin(1);
+            }
+            
+            // Add coin to CoinManager if it exists
+            if (CoinManager.instance != null)
+            {
+                CoinManager.instance.AddCoin();
+            }
+            
             Destroy(gameObject);
         }
     }

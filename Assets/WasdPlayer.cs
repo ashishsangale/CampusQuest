@@ -4,11 +4,18 @@ using UnityEngine;
 [RequireComponent(typeof(CharacterController))]
 public class WasdPlayer : MonoBehaviour
 {
+    [Header("Movement Settings")]
     public AbstractMap map;
     public float moveSpeed = 6f;
     public float sprintMultiplier = 1.6f;
     public float gravity = -18f;
     public bool useCameraRelativeMovement = true;
+
+    [Header("Animation Settings")]
+    public Animator animator;                // Assign your character's Animator here
+    public string horizontalParam = "Hor";   // Horizontal axis parameter
+    public string verticalParam = "Vert";    // Vertical axis parameter  
+    public string stateParam = "State";      // State parameter (0=walk, 1=run)
 
     private CharacterController _controller;
     private Vector3 _velocity;
@@ -18,6 +25,12 @@ public class WasdPlayer : MonoBehaviour
     {
         _controller = GetComponent<CharacterController>();
         _mainCamera = Camera.main;
+        
+        // Try to find animator if not assigned
+        if (animator == null)
+        {
+            animator = GetComponentInChildren<Animator>();
+        }
     }
 
     void Update()
@@ -47,7 +60,8 @@ public class WasdPlayer : MonoBehaviour
             moveDir = input;
         }
 
-        float speed = Input.GetKey(KeyCode.LeftShift) ? moveSpeed * sprintMultiplier : moveSpeed;
+        bool isSprinting = Input.GetKey(KeyCode.LeftShift);
+        float speed = isSprinting ? moveSpeed * sprintMultiplier : moveSpeed;
 
         if (_controller.isGrounded && _velocity.y < 0f) _velocity.y = -2f;
         _velocity.y += gravity * Time.deltaTime;
@@ -60,6 +74,34 @@ public class WasdPlayer : MonoBehaviour
         {
             Quaternion targetRotation = Quaternion.LookRotation(moveDir, Vector3.up);
             transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime * 10f);
+        }
+
+        // Update animations
+        UpdateAnimations(h, v, isSprinting, input.sqrMagnitude > 0.01f);
+    }
+
+    void UpdateAnimations(float horizontal, float vertical, bool isRunning, bool isMoving)
+    {
+        if (animator == null) return;
+
+        if (isMoving)
+        {
+            // Convert world movement to local direction for animation
+            Vector3 localDirection = transform.InverseTransformDirection(new Vector3(horizontal, 0, vertical));
+            
+            // Set movement axes
+            animator.SetFloat(horizontalParam, localDirection.x, 0.1f, Time.deltaTime);
+            animator.SetFloat(verticalParam, localDirection.z, 0.1f, Time.deltaTime);
+            
+            // Set state: 0 = walk, 1 = run
+            animator.SetFloat(stateParam, isRunning ? 1f : 0f, 0.1f, Time.deltaTime);
+        }
+        else
+        {
+            // Idle state
+            animator.SetFloat(horizontalParam, 0f, 0.1f, Time.deltaTime);
+            animator.SetFloat(verticalParam, 0f, 0.1f, Time.deltaTime);
+            animator.SetFloat(stateParam, 0f, 0.1f, Time.deltaTime);
         }
     }
 

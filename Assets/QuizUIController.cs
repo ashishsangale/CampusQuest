@@ -15,10 +15,10 @@ public class Question
 public class QuizUIController : MonoBehaviour
 {
     [Header("UI")]
-    public GameObject quizPanel;               // The panel to show/hide
-    public TextMeshProUGUI questionText;       // TMP text for question
-    public Button[] answerButtons;             // size = 4
-    public TextMeshProUGUI feedbackText;       // optional "Try again!"
+    public GameObject quizPanel;               
+    public TextMeshProUGUI questionText;     
+    public Button[] answerButtons;          
+    public TextMeshProUGUI feedbackText;      
 
     [Header("Quiz Content")]
     public Question[] questions;
@@ -28,7 +28,6 @@ public class QuizUIController : MonoBehaviour
 
     [Header("Input lock while quiz is open")]
     public MonoBehaviour[] componentsToDisable;
-
 
     private int currentQ = 0;
     private bool isActive = false;
@@ -53,7 +52,8 @@ public class QuizUIController : MonoBehaviour
             return;
         }
 
-        currentQ = 0;
+        currentQ = UnityEngine.Random.Range(0, questions.Length);
+
         isActive = true;
         RefreshUI();
 
@@ -95,17 +95,10 @@ public class QuizUIController : MonoBehaviour
 
         if (correct)
         {
-            currentQ++;
-            if (currentQ >= questions.Length)
-            {
-                HideQuiz();
-                onQuizCompleted?.Invoke();
-            }
-            else
-            {
-                if (feedbackText != null) feedbackText.gameObject.SetActive(false);
-                RefreshUI();
-            }
+            if (feedbackText != null) feedbackText.gameObject.SetActive(false);
+
+            HideQuiz();
+            onQuizCompleted?.Invoke();
         }
         else
         {

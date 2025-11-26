@@ -25,6 +25,12 @@ public class ScoreManager : MonoBehaviour
         if (amount <= 0) return;
         Score += amount;
         UpdateUI();
+        
+        // Notify GameManager to check win condition
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.CheckWinCondition();
+        }
     }
 
     private void UpdateUI()

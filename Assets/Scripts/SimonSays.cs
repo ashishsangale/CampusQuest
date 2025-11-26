@@ -1,9 +1,10 @@
 using System.Collections;
 using System.Collections.Generic;
-using System.Reflection;   // <--- added for TryAwardPoints
+using System.Reflection;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using UnityEngine.Events;
 
 public class SimonSays : MonoBehaviour
 {
@@ -23,11 +24,14 @@ public class SimonSays : MonoBehaviour
     [SerializeField] private float betweenRounds = 0.6f;
 
     [Header("Reward / Flow")]
-    [SerializeField] private GameObject collectZoneToEnable;       // drag your CollectZone (disabled at start)
-    [SerializeField] private MonoBehaviour playerMoverToReenable;  // drag PlayerSimpleMover
+    [SerializeField] private GameObject collectZoneToEnable;       // disabled at start
+    [SerializeField] private MonoBehaviour playerMoverToReenable;  // PlayerSimpleMover
 
     [Header("Scoring")]
-    [SerializeField] private int awardPoints = 20;   // same as JigsawPuzzle
+    [SerializeField] private int awardPoints = 20;
+
+    [Header("Events")]
+    public UnityEvent onSolved;   // <-- fire this to let the scene hide/destroy the chest
 
     private List<int> sequence = new List<int>();
     private int inputIndex = 0;
@@ -36,8 +40,8 @@ public class SimonSays : MonoBehaviour
     private Image rImg, bImg, gImg, yImg;
     private Color rBase, bBase, gBase, yBase;
 
-    [SerializeField] private CanvasGroup panelGroup;   // drag SimonPanel’s CanvasGroup here
-    [SerializeField] private ToastPopup toast;  
+    [SerializeField] private CanvasGroup panelGroup;   // SimonPanel CanvasGroup
+    [SerializeField] private ToastPopup toast;
 
     void Awake()
     {
@@ -74,29 +78,31 @@ public class SimonSays : MonoBehaviour
     {
         for (int round = 1; round <= roundsToWin; round++)
         {
-            sequence.Add(Random.Range(0, 4));      // extend sequence
-            yield return ShowSequence();           // play it
+            sequence.Add(Random.Range(0, 4));
+            yield return ShowSequence();
 
             if (statusText) statusText.text = $"Your turn (round {round}/{roundsToWin})";
             inputIndex = 0;
             acceptingInput = true;
 
-            // wait until player finishes or fails
             while (acceptingInput) yield return null;
 
-            if (statusText && statusText.text.StartsWith("Wrong")) yield break; // stop on failure
+            if (statusText && statusText.text.StartsWith("Wrong")) yield break;
             yield return new WaitForSeconds(betweenRounds);
         }
 
-        // Won the game!
+        // Won
         if (statusText) statusText.text = "You did it!";
 
-        // Award points like Jigsaw
+        // award score like Jigsaw
         TryAwardPoints(awardPoints);
+
+        // notify the scene to hide/destroy the chest
+        onSolved?.Invoke();
 
         yield return new WaitForSeconds(0.4f);
 
-        // 1) Fade the Simon panel out (so it "disappears")
+        // fade out panel
         if (panelGroup)
         {
             panelGroup.interactable = false;
@@ -104,28 +110,25 @@ public class SimonSays : MonoBehaviour
             yield return Fade(panelGroup, 1f, 0f, 0.25f);
         }
 
-        // 2) Show toast AFTER panel is gone
+        // show clue toast after panel is gone
         if (toast) toast.Show("Your next treasure is at Academic Center!", 2.5f);
 
-        // 3) Unlock and close
+        // unlock collect zone and restore movement
         if (collectZoneToEnable) collectZoneToEnable.SetActive(true);
         if (playerMoverToReenable) playerMoverToReenable.enabled = true;
 
-        // We can now disable the panel immediately—the toast is a sibling so it stays visible.
         gameObject.SetActive(false);
     }
 
     IEnumerator ShowSequence()
     {
         startButton.interactable = false;
-
         yield return new WaitForSeconds(0.5f);
         for (int i = 0; i < sequence.Count; i++)
         {
             yield return Flash(sequence[i]);
             yield return new WaitForSeconds(betweenFlashes);
         }
-
         startButton.interactable = true;
     }
 
@@ -182,13 +185,11 @@ public class SimonSays : MonoBehaviour
         img.color = baseCol;
     }
 
-    // Disable player movement whenever the Simon panel is shown
     void OnEnable()
     {
         if (playerMoverToReenable) playerMoverToReenable.enabled = false;
     }
 
-    // Make sure movement is restored if the panel is hidden (win, close, etc.)
     void OnDisable()
     {
         if (playerMoverToReenable) playerMoverToReenable.enabled = true;
@@ -197,27 +198,20 @@ public class SimonSays : MonoBehaviour
     Image GetImage(int idx) => idx switch { 0 => rImg, 1 => bImg, 2 => gImg, _ => yImg };
     Color GetBase(int idx)  => idx switch { 0 => rBase, 1 => bBase, 2 => gBase, _ => yBase };
 
-    /// Try to award points on ScoreManager.Instance using any common method name.
+    // reflection-based score award (works with ScoreManager.Add/AddPoints/AddScore)
     private void TryAwardPoints(int points)
     {
-        // same reflection-based approach as in JigsawPuzzle
         var smInstanceProp = typeof(ScoreManager).GetProperty("Instance", BindingFlags.Public | BindingFlags.Static);
         if (smInstanceProp == null) return;
-
         var sm = smInstanceProp.GetValue(null, null);
         if (sm == null) return;
 
         var t = sm.GetType();
-        // Try Add(int), AddPoints(int), AddScore(int) in that order
         var m =
             t.GetMethod("Add", new[] { typeof(int) }) ??
             t.GetMethod("AddPoints", new[] { typeof(int) }) ??
             t.GetMethod("AddScore", new[] { typeof(int) });
 
-        if (m != null)
-        {
-            m.Invoke(sm, new object[] { points });
-        }
-        // else: silently skip – no scoring API present.
+        if (m != null) m.Invoke(sm, new object[] { points });
     }
 }

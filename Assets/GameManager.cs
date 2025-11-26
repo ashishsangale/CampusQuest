@@ -1,17 +1,25 @@
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;   
+using UnityEngine.SceneManagement;
+using TMPro;
+
 public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
 
     [Header("Progress")]
-    public Slider progressSlider;
     public int totalCoinsNeeded = 10;
     private int coinsCollected = 0;
 
+    [Header("Win Condition")]
+    public int winningScore = 60; // Score needed to win
+    public string winningSceneName = "WinningScene"; // Name of the winning scene
+
     [Header("UI")]
-    public TMP_Text coinsLabel; 
+    public TMP_Text coinsLabel;
+
+    // Public properties
+    public int CoinsCollected => coinsCollected;
+    public int Score => ScoreManager.Instance != null ? ScoreManager.Instance.Score : 0;
 
     private void Awake()
     {
@@ -20,16 +28,11 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+
         Instance = this;
         DontDestroyOnLoad(gameObject);
 
-        if (progressSlider != null)
-        {
-            progressSlider.minValue = 0;
-            progressSlider.maxValue = totalCoinsNeeded;
-            progressSlider.wholeNumbers = true;
-        }
-
+        PositionCoinsLabel();
         UpdateProgressUI();
     }
 
@@ -37,15 +40,69 @@ public class GameManager : MonoBehaviour
     {
         coinsCollected = Mathf.Clamp(coinsCollected + amount, 0, totalCoinsNeeded);
         UpdateProgressUI();
-
+        
+        // NOTE: Coins don't affect score anymore
+        // Score is tracked separately by ScoreManager
+    }
+    
+    public void AddScore(int points)
+    {
+        // Use ScoreManager to add score
+        if (ScoreManager.Instance != null)
+        {
+            ScoreManager.Instance.AddPoints(points);
+        }
+        
+        UpdateProgressUI();
+        
+        // CheckWinCondition is now called by ScoreManager.AddPoints()
+    }
+    
+    public void CheckWinCondition()
+    {
+        int currentScore = ScoreManager.Instance != null ? ScoreManager.Instance.Score : 0;
+        
+        if (currentScore >= winningScore)
+        {
+            // Player reached winning score!
+            OnGameWon();
+        }
+    }
+    
+    private void OnGameWon()
+    {
+        int currentScore = ScoreManager.Instance != null ? ScoreManager.Instance.Score : 0;
+        Debug.Log($"Game Won! Score: {currentScore} (Goal: {winningScore})");
+        
+        // Load the winning scene
+        if (!string.IsNullOrEmpty(winningSceneName))
+        {
+            SceneManager.LoadScene(winningSceneName);
+        }
+        else
+        {
+            Debug.LogWarning("GameManager: Winning scene name is not set!");
+        }
     }
 
-    public void UpdateProgressUI()
+    private void UpdateProgressUI()
     {
-        if (progressSlider != null)
-            progressSlider.value = coinsCollected;
-
         if (coinsLabel != null)
-            coinsLabel.text = $"Coins Collected\n{coinsCollected} / {totalCoinsNeeded}";
+            coinsLabel.text = $"Coins: {coinsCollected}/{totalCoinsNeeded}";
+    }
+
+    private void PositionCoinsLabel()
+    {
+        if (coinsLabel == null) return;
+
+        RectTransform rt = coinsLabel.GetComponent<RectTransform>();
+
+        // anchor to bottom-right
+        rt.anchorMin = new Vector2(1f, 0f);
+        rt.anchorMax = new Vector2(1f, 0f);
+        rt.pivot = new Vector2(1f, 0f);
+
+        // offset from corner
+        rt.anchoredPosition = new Vector2(-20f, 20f);
     }
 }
