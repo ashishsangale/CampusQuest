@@ -88,7 +88,7 @@ public class GameManager : MonoBehaviour
     private void UpdateProgressUI()
     {
         if (coinsLabel != null)
-            coinsLabel.text = $"Coins: {coinsCollected}/{totalCoinsNeeded}";
+            coinsLabel.text = $"Coins: {coinsCollected}";
     }
 
     private void PositionCoinsLabel()
@@ -97,12 +97,7 @@ public class GameManager : MonoBehaviour
 
         RectTransform rt = coinsLabel.GetComponent<RectTransform>();
 
-        // anchor to bottom-right
-        rt.anchorMin = new Vector2(1f, 0f);
-        rt.anchorMax = new Vector2(1f, 0f);
-        rt.pivot = new Vector2(1f, 0f);
-
-        // offset from corner
-        rt.anchoredPosition = new Vector2(-20f, 20f);
+        // Set position to (926, 387, 0)
+        rt.anchoredPosition3D = new Vector3(926f, 387f, 0f);
     }
 }
